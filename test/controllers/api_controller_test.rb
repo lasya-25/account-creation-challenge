@@ -34,4 +34,27 @@ class ApiControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_equal JSON.parse(response.body)['success'], true
   end
+
+  test "should create account with valid params" do
+    post '/api/create-account', params: { username: 'validusername123', password: 'validpassword123' }
+    assert_response :created
+    json = JSON.parse(@response.body)
+    assert_equal 'Account created successfully', json['message']
+  end
+
+  test "should return errors with invalid params" do
+    post '/api/create-account', params: { username: '', password: '' }
+    assert_response :unprocessable_entity
+    json = JSON.parse(@response.body)
+    assert json['errors'].present?
+  end
+
+  test "should handle unexpected error" do
+    User.stub(:new, ->(*) { raise StandardError.new("fail") }) do
+      post '/api/create-account', params: { username: 'user', password: 'pass' }
+      assert_response :internal_server_error
+      json = JSON.parse(@response.body)
+      assert_equal 'An unexpected error occurred. Please try again later.', json['error']
+    end
+  end
 end
